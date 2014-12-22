@@ -1,0 +1,63 @@
+--- SPECS/httpd.spec	2014-06-17 19:58:27.000000000 +0100
++++ /tmp/httpd.spec	2014-12-22 19:02:15.289010541 +0000
+@@ -1,6 +1,5 @@
+ %define contentdir %{_datadir}/httpd
+ %define docroot /var/www
+-%define suexec_caller apache
+ %define mmn 20120211
+ %define oldmmnisa %{mmn}-%{__isa_name}-%{__isa_bits}
+ %define mmnisa %{mmn}%{__isa_name}%{__isa_bits}
+@@ -84,9 +83,8 @@
+ BuildRequires: apr-devel >= 1.4.0, apr-util-devel >= 1.2.0, pcre-devel >= 5.0
+ BuildRequires: systemd-devel
+ Requires: /etc/mime.types, system-logos >= 7.92.1-1
+-Obsoletes: httpd-suexec
+ Provides: webserver
+-Provides: mod_dav = %{version}-%{release}, httpd-suexec = %{version}-%{release}
++Provides: mod_dav = %{version}-%{release}
+ Provides: httpd-mmn = %{mmn}, httpd-mmn = %{mmnisa}, httpd-mmn = %{oldmmnisa}
+ Requires: httpd-tools = %{version}-%{release}
+ Requires(pre): /usr/sbin/useradd
+@@ -217,9 +215,6 @@
+ sed -i '/^#define PLATFORM/s/Unix/%{vstring}/' os/unix/os.h
+ sed -i 's/@RELEASE@/%{release}/' server/core.c
+
+-# Prevent use of setcap in "install-suexec-caps" target.
+-sed -i '/suexec/s,setcap ,echo Skipping setcap for ,' Makefile.in
+-
+ # Safety check: prevent build if defined MMN does not equal upstream MMN.
+ vmmn=`echo MODULE_MAGIC_NUMBER_MAJOR | cpp -include include/ap_mmn.h | sed -n '/^2/p'`
+ if test "x${vmmn}" != "x%{mmn}"; then
+@@ -267,14 +262,6 @@
+         --with-installbuilddir=%{_libdir}/httpd/build \
+         --enable-mpms-shared=all \
+         --with-apr=%{_prefix} --with-apr-util=%{_prefix} \
+-	--enable-suexec --with-suexec \
+-        --enable-suexec-capabilities \
+-	--with-suexec-caller=%{suexec_caller} \
+-	--with-suexec-docroot=%{docroot} \
+-	--without-suexec-logfile \
+-        --with-suexec-syslog \
+-	--with-suexec-bin=%{_sbindir}/suexec \
+-	--with-suexec-uidmin=500 --with-suexec-gidmin=100 \
+         --enable-pie \
+         --with-pcre \
+         --enable-mods-shared=all \
+@@ -555,7 +542,6 @@
+ %{_sbindir}/fcgistarter
+ %{_sbindir}/apachectl
+ %{_sbindir}/rotatelogs
+-%caps(cap_setuid,cap_setgid+pe) %attr(510,root,%{suexec_caller}) %{_sbindir}/suexec
+
+ %dir %{_libdir}/httpd
+ %dir %{_libdir}/httpd/modules
+@@ -642,6 +628,9 @@
+ %{_sysconfdir}/rpm/macros.httpd
+
+ %changelog
++* Mon Dec 22 2014 Jamon Camisso <jamonation+centos@gmail.com> - 2.4.6-17.el7.centos.1
++- Remove suexec for use with Docker and Centos7 image
++
+ * Tue Jun 17 2014 Jim Perrin <jperrin@centos.org> - 2.4.6-17.el7.centos.1
+ - Remove index.html, add centos-noindex.tar.gz
+ - update welcome.conf with proper aliases
